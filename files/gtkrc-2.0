@@ -1,0 +1,7 @@
+style "user-font" {
+  font_name = "Inconsolata Nerd Font Bold 10"
+}
+widget_class "*" style "user-font"
+gtk-font-name = "Inconsolata Nerd Font Bold 10"
+gtk-cursor-theme-name = "Adwaita"
+gtk-cursor-theme-size = 36

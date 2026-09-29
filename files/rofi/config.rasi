@@ -1,0 +1,17 @@
+configuration {
+    font: "Lekton Nerd Font Bold 28";
+    show-icons: true;
+    icon-theme: "Papirus";
+    terminal: "kitty";
+    drun-display-format: "{name}";
+    disable-history: false;
+    sidebar-mode: false;
+}
+
+/* Optional themes shipped with the rofi package, e.g.:
+ * @theme "/run/current-system/sw/share/rofi/themes/Arc.rasi"
+ * @theme "/run/current-system/sw/share/rofi/themes/Monokai.rasi"
+ *
+ * Home Manager users can instead put a .rasi file next to this config and
+ * reference it by relative path.
+ */
