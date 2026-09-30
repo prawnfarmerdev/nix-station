@@ -115,6 +115,7 @@ in
       kubernetes
       kubernetes-helm
       tmux
+      opencode
       btop
       htop
       fastfetch
@@ -135,7 +136,7 @@ in
       liberation_ttf
       dejavu_fonts
       noto-fonts
-      noto-fonts-emoji
+      noto-fonts-color-emoji
     ]
     ++ fonts
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 graphical;
