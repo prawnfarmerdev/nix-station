@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Weather script for i3status using Open-Meteo API
 
 # Toronto coordinates

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Combined audio and mic status with separator
 
 audio_icon=$(cat /tmp/audio_output.txt 2>/dev/null || echo $'\uf128')  # question if missing

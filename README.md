@@ -1,13 +1,13 @@
 # nix-station
 
-Declarative reproduction of this Framework 16 laptop's desktop, built on
-[Home Manager](https://github.com/nix-community/home-manager). It installs the
-apps and manages the dotfiles for an **i3 / X11** desktop, and it works on any
-Linux distribution that has Nix installed (currently Void Linux), as well as on
-NixOS.
+Declarative reproduction of this ASUS ROG Zephyrus G14 laptop's desktop, built
+on [Home Manager](https://github.com/nix-community/home-manager). It installs
+the apps and manages the dotfiles for a **Sway / Wayland** desktop, and it works
+on any Linux distribution that has Nix installed, as well as on NixOS.
 
-The reference machine: Framework Laptop 16, AMD Ryzen 7 7840HS (Radeon 780M),
-2560x1600 165 Hz, i3 + i3status on Xorg.
+The reference machine: ASUS ROG Zephyrus G14 (GA402RK), AMD Ryzen 9 6900HS
+(Radeon 680M), Sway + i3status on Wayland. The owner is `okra`, hostname
+`nixos`.
 
 ## Layout
 
@@ -16,8 +16,10 @@ flake.nix                  # inputs + homeConfigurations (one per machine/user)
 home/
   default.nix              # entry module: identity, session vars, imports
   packages.nix             # every application / CLI / font
-  i3.nix                   # i3, i3status, libinput-gestures, session entry points
-  desktop.nix              # dunst, rofi, kitty, wezterm, btop, GTK/Xresources
+  sway.nix                 # Sway, swaylock, i3status config
+  power.nix                # swayidle + battery-only hibernate
+  webcam.nix               # webcam white-balance reset at login
+  desktop.nix              # dunst, rofi, kitty, wezterm, btop, GTK settings
   shell.nix                # bash (prompt, aliases, PATH)
   scripts.nix              # ~/.config/scripts and ~/.local/bin helpers
 files/                     # the actual config files (tracked, portable)
@@ -25,12 +27,13 @@ system/                    # root-owned configs Home Manager cannot own
 ```
 
 All paths inside `files/` use `~` / `$HOME`, so the repo works for a user other
-than `labanos`.
+than `okra`.
 
 ## What gets installed
 
-- **Desktop / WM:** i3, i3status, i3blocks, i3lock, xss-lock, dex, dmenu, rofi,
-  dunst, feh, network-manager-applet, polkit-gnome, gnome-keyring
+- **Desktop / WM:** Sway (swayidle, swaylock, swaybg), grim, slurp, wl-clipboard,
+  wtype, i3status, rofi, dunst, network-manager-applet, polkit-gnome,
+  gnome-keyring
 - **Browsers:** Brave, Firefox, Chromium
 - **Comms:** Vesktop, Zoom, Proton VPN
 - **Media:** mpv, qBittorrent, Deluge
@@ -39,7 +42,7 @@ than `labanos`.
 - **CLI:** git, gh, jq, curl, wget, kubernetes, helm, tmux, btop, htop,
   fastfetch, cmatrix, yazi, ripgrep, fd, fzf, ...
 - **Audio / input / power:** pipewire, wireplumber, pulseaudio, pavucontrol,
-  playerctl, brightnessctl, libinput-gestures, tlp, powertop, upower
+  playerctl, brightnessctl, tlp, powertop, upower, v4l-utils
 - **Fonts:** Inconsolata, Lekton and Symbols Nerd Fonts, Liberation, DejaVu,
   Noto.
 
@@ -59,7 +62,7 @@ than `labanos`.
    cd ~/projects/nix-station
    ```
 
-3. **Adjust the username** (only if it is not `labanos`). Either edit the
+3. **Adjust the username** (only if it is not `okra`). Either edit the
    `username` default in `flake.nix`, or add a new entry:
 
    ```nix
@@ -73,10 +76,10 @@ than `labanos`.
 4. **Activate Home Manager.**
 
    ```sh
-   nix run home-manager/master -- switch --flake .#labanos
+   nix run home-manager/master -- switch --flake .#okra
    ```
 
-   `.#labanos` is the attribute name in `homeConfigurations` (the key), not the
+   `.#okra` is the attribute name in `homeConfigurations` (the key), not the
    Linux username.
 
 5. **Install the system-level files** (requires root) - see `system/README.md`:
@@ -87,16 +90,13 @@ than `labanos`.
 
 6. **Start the desktop.**
 
-   ```sh
-   startx          # uses ~/.xinitrc -> dbus-run-session i3
-   ```
-
-   Or point a display manager at the i3 session.
+   Log in through your display manager and pick the **Sway** session (on this
+   machine the `ly` greeter defaults to it).
 
 ## Day-to-day
 
 ```sh
-home-manager switch --flake ~/projects/nix-station#labanos   # apply changes
+home-manager switch --flake ~/projects/nix-station#okra   # apply changes
 home-manager generations                                      # rollback list
 nix flake update                                              # bump inputs
 ```
@@ -107,11 +107,12 @@ Home Manager refuses to overwrite files it does not already manage. When
 switching on a machine that already has these dotfiles, back them up first:
 
 ```sh
-home-manager switch --flake .#labanos -b backup
+home-manager switch --flake .#okra -b backup
 ```
 
-or remove the old files (`~/.config/i3`, `~/.config/scripts`, `~/.local/bin`,
-`~/.Xresources`, `~/.bashrc`, ...) before the first switch.
+or remove the old files (`~/.config/sway`, `~/.config/i3status`,
+`~/.config/rofi`, `~/.config/dunst`, `~/.config/scripts`, `~/.local/bin`,
+`~/.bashrc`, ...) before the first switch.
 
 A few things stay machine/distribution specific and are intentionally **not**
 managed here:
@@ -127,8 +128,6 @@ managed here:
 - **Steam** is unfree and, on a non-NixOS host, may need extra set-up (the
   `steam` package plus `nixpkgs.config.allowUnfree`, already set here). On NixOS
   prefer `programs.steam.enable = true`.
-- **Audio warm-up:** the i3 config runs `pulseaudio --start`. If you switch to
-  PipeWire, remove that line and let `wireplumber` own the session.
 - The bar reads `/tmp/{weather,audio_output,mic_status}.txt`, written by the
   daemons under `~/.config/i3status/scripts/`.
 - `i3status` currently uses a hardware-specific battery path
@@ -150,11 +149,11 @@ Add the Home Manager module to a NixOS host:
     useUserPackages = true;
     extraSpecialArgs = {
       inputs = inputs;
-      username = "labanos";
-      homeDirectory = "/home/labanos";
-      hostname = "framework16";
+      username = "okra";
+      homeDirectory = "/home/okra";
+      hostname = "nixos";
     };
-    users.labanos = {
+    users.okra = {
       imports = [ "${inputs.nix-station}/home" ];
       targets.genericLinux.enable = false;
     };

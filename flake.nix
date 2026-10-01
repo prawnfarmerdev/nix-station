@@ -1,5 +1,5 @@
 {
-  description = "Framework 16 / i3 workstation - declarative Home Manager setup";
+  description = "ASUS ROG / Sway workstation - declarative Home Manager setup";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -7,6 +7,9 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # The native RuneScape 3 client still links OpenSSL 1.1, which was removed
+    # from nixpkgs as end-of-life. Pin an older nixpkgs just to source it.
+    nixpkgs-old.url = "github:NixOS/nixpkgs/nixos-23.11";
   };
 
   outputs =
@@ -25,14 +28,19 @@
       # below or add another entry to `homeConfigurations`.
       mkHome =
         {
-          username ? "labanos",
+          username ? "okra",
           homeDirectory ? "/home/${username}",
-          hostname ? "framework16",
+          hostname ? "nixos",
         }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
             inherit system;
-            config.allowUnfree = true;
+            config = {
+              allowUnfree = true;
+              # bolt-launcher marks itself broken with enableRS3 because RS3
+              # needs OpenSSL 1.1; we supply it ourselves, so ignore the warning.
+              problems.handlers.bolt-launcher.broken = "ignore";
+            };
           };
 
           extraSpecialArgs = {
@@ -49,8 +57,8 @@
     in
     {
       homeConfigurations = {
-        # The current laptop (~/projects/nix-station)
-        "labanos" = mkHome { };
+        # The current laptop (ASUS ROG, hostname nixos)
+        "okra" = mkHome { };
 
         # Example second machine - uncomment and adjust:
         # "workstation" = mkHome {

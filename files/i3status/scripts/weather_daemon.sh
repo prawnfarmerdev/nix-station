@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Weather daemon that updates weather file for i3status
 
 WEATHER_FILE="/tmp/weather.txt"

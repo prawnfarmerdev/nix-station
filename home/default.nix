@@ -11,10 +11,12 @@
 {
   imports = [
     ./packages.nix
-    ./i3.nix
+    ./sway.nix
+    ./power.nix
     ./desktop.nix
     ./shell.nix
     ./scripts.nix
+    ./webcam.nix
   ];
 
   home = {
@@ -39,9 +41,17 @@
     RADV_PERFTEST = "aco";
     MESA_SHADER_CACHE_DIR = "${config.xdg.cacheHome}/mesa-shaders";
 
-    XDG_SESSION_TYPE = "x11";
-    XDG_SESSION_DESKTOP = "i3";
-    XDG_CURRENT_DESKTOP = "i3";
-    GDK_BACKEND = "x11";
+    # Run Wayland-native where possible.
+    NIXOS_OZONE_WL = "1";
+    MOZ_ENABLE_WAYLAND = "1";
+  };
+
+  # Cursor theme/size for Wayland (matches the old GTK/Xresources value).
+  home.pointerCursor = {
+    enable = true;
+    name = "Adwaita";
+    package = pkgs.adwaita-icon-theme;
+    size = 36;
+    gtk.enable = true;
   };
 }

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Combined audio and mic status daemon
 # Writes to /tmp/audio_mic.txt with pipe separator
 

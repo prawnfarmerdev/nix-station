@@ -83,4 +83,7 @@ read_file mic {
 tztime local {
     format = "%m-%d %a %I:%M %p"
     timezone = "America/Toronto"
+    # This is the last block; disabling its separator removes the "|" that
+    # would otherwise be drawn between the clock and the system tray icons.
+    separator = false
 }

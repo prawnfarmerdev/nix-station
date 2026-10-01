@@ -1,13 +1,40 @@
 {
   pkgs,
   lib,
+  inputs,
   ...
 }:
 let
+  inherit (pkgs.stdenv.hostPlatform) system;
+
+  # RuneScape 3's native Linux client (used by Bolt) needs OpenSSL 1.1, which
+  # nixpkgs removed as end-of-life, so source it from the pinned older nixpkgs.
+  pkgsOld = import inputs.nixpkgs-old {
+    inherit system;
+    config.permittedInsecurePackages = [ "openssl-1.1.1w" ];
+  };
+  openssl11 = pkgsOld.openssl_1_1;
+
+  # nixpkgs' bolt-launcher leaves out GTK2 (needed by the RS3 client) unless
+  # enableRS3 is set, and never provides OpenSSL 1.1. Wrap it so the sandboxed
+  # client finds both.
+  boltPkg = pkgs.bolt-launcher.override { enableRS3 = true; };
+
+  boltLauncher = pkgs.writeShellScriptBin "bolt-launcher" ''
+    export LD_LIBRARY_PATH="${lib.getLib openssl11}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    exec ${boltPkg}/bin/bolt-launcher "$@"
+  '';
+
   # Apps that need unfree (Steam, Zoom) or are large.
   graphical = with pkgs; [
-    # Browsers
-    brave
+    # Browsers.
+    # Brave: the nixpkgs wrapper force-enables VAAPI encode
+    # (--enable-features=AcceleratedVideoEncoder). On this AMD laptop that makes
+    # WebRTC send black frames (the local preview still looks fine), so disable
+    # hardware video encoding while keeping hardware decode.
+    (brave.override {
+      commandLineArgs = "--disable-features=AcceleratedVideoEncoder";
+    })
     firefox
     chromium
 
@@ -21,9 +48,11 @@ let
     qbittorrent
     deluge
 
-    # Gaming
-    steam
+    # Gaming (steam is provided by programs.steam.enable on NixOS)
     gamescope
+    # RuneScape launcher (supports RS3 and OSRS); nixpkgs removed the old
+    # `runescape` package and points here instead. See `boltLauncher` above.
+    boltLauncher
   ];
 
   # Nerd Fonts are provided as an attribute set in nixpkgs.
@@ -37,18 +66,20 @@ in
   home.packages =
     with pkgs;
     [
-      # ---- Window manager / desktop shell (i3 on X11) ----
-      i3
+      # ---- Wayland compositor / desktop shell ----
+      sway
+      swayidle
+      swaylock
+      swaybg
+      grim
+      slurp
+      wl-clipboard
+      wtype
+      sway-audio-idle-inhibit
       i3status
-      i3blocks
-      i3lock
-      xss-lock
-      dex
-      dmenu
       rofi
       dunst
       libnotify
-      feh
       networkmanagerapplet
       polkit_gnome
       gnome-keyring
@@ -56,30 +87,8 @@ in
       xdg-desktop-portal
       xdg-desktop-portal-gtk
 
-      # ---- X11 plumbing ----
-      xorg.xorgserver
-      xorg.xinit
-      xorg.xauth
-      xorg.xrandr
-      xorg.xrdb
-      xorg.xset
-      xorg.xinput
-      xorg.xprop
-      xorg.setxkbmap
-      xorg.xev
-      xorg.xmodmap
-      xorg.xhost
-      xorg.xkill
-      xorg.xdpyinfo
-      xorg.xwininfo
-      xclip
-      xdotool
-      xprintidle
-      maim
-
       # ---- Input / power / audio ----
       libinput
-      libinput-gestures
       brightnessctl
       playerctl
       upower
@@ -91,7 +100,7 @@ in
       pavucontrol
       alsa-utils
 
-      # ---- Session bus / system helpers used by the i3 config ----
+      # ---- Session bus / system helpers ----
       dbus
       util-linux
       networkmanager
@@ -128,6 +137,9 @@ in
       unzip
       p7zip
 
+      # ---- Webcam ----
+      v4l-utils
+
       # ---- Theming / fonts ----
       gtk3
       gtk4
@@ -140,4 +152,23 @@ in
     ]
     ++ fonts
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 graphical;
+
+  # Wrapping bolt-launcher (above) drops the .desktop file the package ships,
+  # so recreate it and its icon here to keep it searchable in rofi.
+  xdg.desktopEntries."bolt-launcher" = {
+    name = "Bolt Launcher";
+    genericName = "RuneScape";
+    comment = "Alternative launcher for RuneScape (RS3 and OSRS)";
+    exec = "bolt-launcher";
+    icon = "bolt-launcher";
+    terminal = false;
+    categories = [ "Game" ];
+    settings = {
+      StartupWMClass = "BoltLauncher";
+      Keywords = "RuneScape;RS3;OSRS;Bolt;MMO;";
+    };
+  };
+
+  xdg.dataFile."icons/hicolor/256x256/apps/bolt-launcher.png".source =
+    "${boltPkg}/share/icons/hicolor/256x256/apps/bolt-launcher.png";
 }

@@ -1,28 +1,29 @@
 #!/bin/sh
-# Toggle mirroring between two connected displays
+# Toggle mirroring between two connected displays (Sway/Wayland).
 
-# Get connected outputs
-connected=$(xrandr | grep -w connected | awk '{print $1}')
-count=$(echo "$connected" | wc -l)
+outputs_json="$(swaymsg -t get_outputs -r 2>/dev/null)"
+connected="$(echo "$outputs_json" | jq -r '.[] | select(.active == true) | .name')"
+count="$(echo "$connected" | sed '/^$/d' | wc -l)"
 
 if [ "$count" -lt 2 ]; then
     notify-send "Mirror toggle" "Need at least 2 connected displays"
     exit 0
 fi
 
-# Get primary output (first connected)
-primary=$(echo "$connected" | head -1)
-secondary=$(echo "$connected" | tail -1)
+# Primary output (first connected), secondary (last connected).
+primary="$(echo "$connected" | head -1)"
+secondary="$(echo "$connected" | tail -1)"
 
-# Check if mirroring is currently enabled
-mirror=$(xrandr --current | grep -A1 "$secondary" | grep -c "$primary")
+primary_geom="$(echo "$outputs_json" | jq -r --arg n "$primary" '.[] | select(.name == $n) | "\(.rect.x),\(.rect.y) \(.rect.width)x\(.rect.height)"')"
+secondary_geom="$(echo "$outputs_json" | jq -r --arg n "$secondary" '.[] | select(.name == $n) | "\(.rect.x),\(.rect.y) \(.rect.width)x\(.rect.height)"')"
 
-if [ "$mirror" -eq 1 ]; then
-    # Disable mirroring, set extended mode
-    xrandr --output "$secondary" --auto --right-of "$primary"
+if [ "$primary_geom" = "$secondary_geom" ]; then
+    # Currently mirrored -> extend to the right of the primary.
+    width="$(echo "$outputs_json" | jq -r --arg n "$primary" '.[] | select(.name == $n) | .rect.width')"
+    swaymsg output "$secondary" position "$width" 0 > /dev/null
     notify-send "Mirror toggle" "Extended mode: $secondary right of $primary"
 else
-    # Enable mirroring
-    xrandr --output "$secondary" --same-as "$primary"
+    # Currently extended -> mirror on top of the primary.
+    swaymsg output "$secondary" position 0 0 > /dev/null
     notify-send "Mirror toggle" "Mirroring enabled: $secondary same as $primary"
 fi

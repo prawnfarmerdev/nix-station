@@ -1,4 +1,5 @@
 {
+  pkgs,
   ...
 }:
 {
@@ -7,6 +8,8 @@
 
   # ---- Application launcher ----
   xdg.configFile."rofi/config.rasi".source = ../files/rofi/config.rasi;
+  # Dark theme referenced by config.rasi (kept next to it, relative import).
+  xdg.configFile."rofi/Arc-Dark.rasi".source = "${pkgs.rofi}/share/rofi/themes/Arc-Dark.rasi";
 
   # ---- Terminals ----
   xdg.configFile."kitty/kitty.conf".source = ../files/kitty/kitty.conf;
@@ -15,8 +18,7 @@
   # ---- System monitor ----
   xdg.configFile."btop/btop.conf".source = ../files/btop/btop.conf;
 
-  # ---- GTK / X resources (font + cursor sizing) ----
-  home.file.".Xresources".source = ../files/Xresources;
+  # ---- GTK (font + cursor sizing) ----
   home.file.".gtkrc-2.0".source = ../files/gtkrc-2.0;
   xdg.configFile."gtk-3.0/settings.ini".source = ../files/gtk-3.0/settings.ini;
   xdg.configFile."gtk-4.0/settings.ini".source = ../files/gtk-4.0/settings.ini;

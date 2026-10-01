@@ -1,13 +1,20 @@
-#!/bin/bash
-# Power manager for Xorg/i3
+#!/usr/bin/env bash
+# Power manager for Sway/Wayland
+# Switches the panel refresh rate based on AC/battery, like the old xrandr
+# version did, and notifies on change.
 # --- CONFIGURATION ---
-MONITOR="eDP"
+MONITOR="$(swaymsg -t get_outputs -r 2>/dev/null | jq -r '.[] | select(.focused == true) | .name' | head -1)"
+MONITOR="${MONITOR:-eDP-1}"
 PERFRES="2560x1600"
-PERFREFRESH="165.00"
-BATREFRESH="60.00"
-AC_PATH="/sys/class/power_supply/ACAD/online"
+PERFREFRESH="120"
+BATREFRESH="60"
+AC_PATH=""
+for _ac in /sys/class/power_supply/AC*/online /sys/class/power_supply/ACAD/online; do
+    [ -f "$_ac" ] && AC_PATH="$_ac" && break
+done
+AC_PATH="${AC_PATH:-/sys/class/power_supply/AC0/online}"
 STATE_FILE="/tmp/power_state_last"
-LOCK_FILE="/tmp/xpower-manager.lock"
+LOCK_FILE="/tmp/power-manager.lock"
 # --- LOGGING ---
 LOG_FILE="${LOG_FILE:-/tmp/power-manager.log}"
 log() {
@@ -42,18 +49,14 @@ apply_power_settings() {
     local status=$1
     if [ "$status" = "1" ]; then
         # --- PLUGGED IN ---
-        xrandr --output "$MONITOR" --mode "$PERFRES" --rate "$PERFREFRESH" --scale 1x1
-        xset dpms 600 600 600
-        xset +dpms
-        log "AC: plugged in, set $PERFRES @ ${PERFREFRESH}Hz, DPMS 600s"
-        notify-send -r 999 "Power Manager" "AC: $PERFRES @ ${PERFREFRESH}Hz | Screen off in 10m"
+        swaymsg output "$MONITOR" mode "${PERFRES}@${PERFREFRESH}Hz" > /dev/null 2>&1
+        log "AC: plugged in, set $PERFRES @ ${PERFREFRESH}Hz"
+        notify-send -r 999 "Power Manager" "AC: $PERFRES @ ${PERFREFRESH}Hz"
     else
         # --- ON BATTERY ---
-        xrandr --output "$MONITOR" --mode "$PERFRES" --rate "$BATREFRESH" --scale 1x1
-        xset dpms 300 300 300
-        xset +dpms
-        log "AC: on battery, set $PERFRES @ ${BATREFRESH}Hz, DPMS 300s"
-        notify-send -r 999 "Power Manager" "Battery: $PERFRES @ ${BATREFRESH}Hz | Screen off in 5m"
+        swaymsg output "$MONITOR" mode "${PERFRES}@${BATREFRESH}Hz" > /dev/null 2>&1
+        log "AC: on battery, set $PERFRES @ ${BATREFRESH}Hz"
+        notify-send -r 999 "Power Manager" "Battery: $PERFRES @ ${BATREFRESH}Hz"
     fi
 }
 # Initialize state file

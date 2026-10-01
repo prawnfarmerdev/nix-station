@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Check VRR support and status
 
-DEBUGFS="/sys/kernel/debug/dri/0/eDP-1/vrr_range"
+DEBUGFS="$(ls /sys/kernel/debug/dri/*/eDP-*/vrr_range 2>/dev/null | head -1)"
+DEBUGFS="${DEBUGFS:-/sys/kernel/debug/dri/0/eDP-2/vrr_range}"
 
 # Check if debugfs is mounted
 if ! mount | grep -q "debugfs on /sys/kernel/debug"; then
@@ -43,7 +44,7 @@ else
 fi
 
 echo ""
-echo "Summary: VRR is supported (60-165Hz range)."
+echo "Summary: VRR is supported (60-120Hz range)."
 echo "VRR should be enabled with:"
 echo "1. Kernel parameter: amdgpu.vrr=1"
 echo "2. Xorg config: VariableRefresh true"

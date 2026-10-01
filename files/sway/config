@@ -1,0 +1,253 @@
+# Sway configuration.
+#
+# Ported from the i3 config to Wayland. The look is intentionally identical:
+# same font, same bottom bar (swaybar + i3status), same i3 default bar colors,
+# same keybindings, same workspace layout/assignments.
+#
+# Pull in the NixOS-provided snippet (systemd/D-Bus environment import).
+include /etc/sway/config.d/*
+
+set $mod Mod4
+
+### Variables
+set $term kitty
+set $browser brave
+set $menu rofi -show drun
+
+# Font for window titles. Also used by the bar below.
+font pango:Inconsolata Nerd Font Bold 9
+
+### Outputs
+# Solid black background (i3 had no wallpaper either).
+output * bg #000000 solid_color
+# Match the old Xft.dpi 216 (~2.25x) as closely as an integer scale allows.
+output * scale 2
+output eDP-1 adaptive_sync on
+
+### Input
+input "type:keyboard" {
+    xkb_layout us
+    xkb_options ctrl:nocaps
+}
+
+# Ported from system/xorg/80-touchpad-libinput.conf
+input "type:touchpad" {
+    tap enabled
+    tap_button_map lrm
+    natural_scroll enabled
+    scroll_method two_finger
+    click_method clickfinger
+    middle_emulation enabled
+    dwt enabled
+    drag enabled
+    scroll_factor 1.0
+}
+
+### Autostart
+exec sway-audio-idle-inhibit
+exec nm-applet --indicator
+exec dunst
+exec ~/.config/scripts/power-manager.sh
+exec ~/.config/i3status/scripts/weather_daemon.sh
+exec ~/.config/i3status/scripts/mic_daemon.sh
+exec ~/.config/scripts/update-audio-output.sh
+
+### Volume / mic / touchpad
+set $refresh_i3status pkill -USR1 i3status
+bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +10% && $refresh_i3status
+bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -10% && $refresh_i3status
+bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_i3status
+bindsym XF86AudioMicMute exec pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+bindsym Shift+F1 exec pactl set-source-mute @DEFAULT_SOURCE@ toggle && $refresh_i3status
+# Touchpad toggle runs through swaymsg: "events toggle" is runtime-only.
+bindsym XF86TouchpadToggle exec swaymsg input type:touchpad events toggle
+
+### ASUS ROG hotkeys (Asus WMI device -> XF86 keysyms)
+bindsym XF86MonBrightnessDown exec brightnessctl set 10%-
+bindsym XF86MonBrightnessUp exec brightnessctl set +10%
+bindsym XF86KbdBrightnessDown exec brightnessctl --device=asus::kbd_backlight set 1-
+bindsym XF86KbdBrightnessUp exec brightnessctl --device=asus::kbd_backlight set +1
+bindsym XF86KbdLightOnOff exec asusctl leds next
+# Fn+F5 (KEY_PROG1) cycles the platform profile.
+bindsym XF86Launch1 exec asusctl profile next
+# Fn+display toggle / mirror, and wireless toggle.
+bindsym XF86Display exec ~/.config/scripts/toggle-mirror.sh
+bindsym XF86WLAN exec ~/.config/scripts/toggle-airplane.sh
+bindsym XF86RFKill exec ~/.config/scripts/toggle-airplane.sh
+bindsym XF86ScreenSaver exec swaylock -f
+
+### Media keys
+bindsym XF86AudioNext exec playerctl next
+bindsym XF86AudioPlay exec playerctl play-pause
+bindsym XF86AudioPrev exec playerctl previous
+bindsym XF86AudioStop exec playerctl stop
+
+### Touchpad gestures (native sway, replaces libinput-gestures)
+bindgesture swipe:up workspace next
+bindgesture swipe:down workspace prev
+bindgesture swipe:left exec wtype -M alt -k Right -m alt
+bindgesture swipe:right exec wtype -M alt -k Left -m alt
+
+### Window management (same as i3)
+floating_modifier $mod
+# i3 used "tiling_drag modifier titlebar"; sway's default (enable) already
+# allows dragging by titlebar, so no modifier is needed.
+tiling_drag enable
+
+bindsym $mod+Return exec $term
+bindsym $mod+Shift+q kill
+bindsym $mod+d exec $menu
+
+# change focus
+bindsym $mod+j focus left
+bindsym $mod+k focus down
+bindsym $mod+l focus up
+bindsym $mod+semicolon focus right
+bindsym $mod+o focus next
+bindsym $mod+Shift+o focus prev
+
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+
+# move focused window
+bindsym $mod+Shift+j move left
+bindsym $mod+Shift+k move down
+bindsym $mod+Shift+l move up
+bindsym $mod+Shift+semicolon move right
+
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+
+# split / layout
+bindsym $mod+h split h
+bindsym $mod+v split v
+bindsym $mod+f fullscreen toggle
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+
+# floating
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+Shift+s sticky toggle
+bindsym $mod+space focus mode_toggle
+bindsym $mod+a focus parent
+
+# workspace names
+set $ws1 "1"
+set $ws2 "2"
+set $ws3 "3"
+set $ws4 "4"
+set $ws5 "5"
+set $ws6 "6"
+set $ws7 "7"
+set $ws8 "8"
+set $ws9 "9"
+set $ws10 "10"
+
+# Assign applications to workspaces (app_id = Wayland, class = XWayland)
+assign [app_id="kitty"] workspace number $ws1
+for_window [app_id="kitty"] focus
+assign [class="kitty"] workspace number $ws1
+assign [app_id="brave-browser"] workspace number $ws2
+for_window [app_id="brave-browser"] focus
+assign [class="[Bb]rave.*"] workspace number $ws2
+for_window [class="[Bb]rave.*"] focus
+assign [app_id="emacs"] workspace number $ws3
+assign [class="Emacs"] workspace number $ws3
+for_window [class="Emacs"] focus
+assign [class="steam_app_730"] workspace number $ws4
+for_window [class="steam_app_730"] focus
+assign [app_id="vesktop"] workspace number $ws5
+for_window [app_id="vesktop"] focus
+assign [class="[Vv]esktop"] workspace number $ws5
+for_window [class="[Vv]esktop"] focus
+assign [class="Steam"] workspace number $ws6
+for_window [class="Steam"] focus
+assign [class="[Pp]roton.*"] workspace number $ws7
+for_window [class="[Pp]roton.*"] focus
+
+# switch to workspace
+bindsym $mod+1 workspace number $ws1
+bindsym $mod+2 workspace number $ws2
+bindsym $mod+3 workspace number $ws3
+bindsym $mod+4 workspace number $ws4
+bindsym $mod+5 workspace number $ws5
+bindsym $mod+6 workspace number $ws6
+bindsym $mod+7 workspace number $ws7
+bindsym $mod+8 workspace number $ws8
+bindsym $mod+9 workspace number $ws9
+bindsym $mod+0 workspace number $ws10
+
+# move focused container to workspace
+bindsym $mod+Shift+1 move container to workspace number $ws1
+bindsym $mod+Shift+2 move container to workspace number $ws2
+bindsym $mod+Shift+3 move container to workspace number $ws3
+bindsym $mod+Shift+4 move container to workspace number $ws4
+bindsym $mod+Shift+5 move container to workspace number $ws5
+bindsym $mod+Shift+6 move container to workspace number $ws6
+bindsym $mod+Shift+7 move container to workspace number $ws7
+bindsym $mod+Shift+8 move container to workspace number $ws8
+bindsym $mod+Shift+9 move container to workspace number $ws9
+bindsym $mod+Shift+0 move container to workspace number $ws10
+
+# reload / restart / exit
+bindsym $mod+Shift+c reload
+bindsym $mod+Shift+r restart
+bindsym $mod+Shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
+
+# resize mode
+mode "resize" {
+    bindsym j resize shrink width 10 px or 10 ppt
+    bindsym k resize grow height 10 px or 10 ppt
+    bindsym l resize shrink height 10 px or 10 ppt
+    bindsym semicolon resize grow width 10 px or 10 ppt
+    bindsym Left resize shrink width 10 px or 10 ppt
+    bindsym Down resize grow height 10 px or 10 ppt
+    bindsym Up resize shrink height 10 px or 10 ppt
+    bindsym Right resize grow width 10 px or 10 ppt
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+    bindsym $mod+r mode "default"
+}
+bindsym $mod+r mode "resize"
+
+# status bar (same bottom i3status bar and i3 default colors)
+bar {
+    position bottom
+    # No tray_output: swaybar has no "primary" concept, so leaving the option
+    # unset shows the tray on every bar (a name that matches no output would
+    # silently hide it).
+    status_command i3status -c ~/.config/i3status/config
+    font pango:Inconsolata Nerd Font Bold 9
+    colors {
+        background #000000
+        statusline #ffffff
+        separator  #666666
+        focused_workspace  #4c7899 #285577 #ffffff
+        active_workspace   #333333 #5f676a #ffffff
+        inactive_workspace #333333 #222222 #888888
+        urgent_workspace   #2f343a #900000 #ffffff
+        binding_mode       #2f343a #900000 #ffffff
+    }
+}
+
+# Custom keybindings
+bindsym $mod+b exec $browser
+bindsym $mod+y exec $term -e yazi
+bindsym $mod+g exec emacs
+bindsym Mod1+Shift+s exec grim -g "$(slurp)" - | wl-copy
+
+# Function keys (keep i3 bindings; --no-startup-id dropped)
+bindsym F4 exec playerctl previous
+bindsym F5 exec playerctl play-pause
+bindsym F6 exec playerctl next
+bindsym F7 exec brightnessctl set 10%-
+bindsym F8 exec brightnessctl set +10%
+bindsym F9 exec ~/.config/scripts/toggle-mirror.sh
+bindsym F10 exec ~/.config/scripts/toggle-airplane.sh
+bindsym F11 exec grim - | wl-copy
+bindsym F12 exec ~/.config/scripts/cycle-audio.sh

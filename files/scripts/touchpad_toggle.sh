@@ -1,20 +1,16 @@
 #!/bin/sh
-# Toggle touchpad enabled/disabled
+# Toggle touchpad enabled/disabled (Sway/Wayland).
 
-TP_ID=$(xinput list | grep -i touchpad | grep -o 'id=[0-9]*' | cut -d= -f2)
+state="$(swaymsg -t get_inputs -r 2>/dev/null | jq -r '.[] | select(.type == "touchpad") | .libinput.send_events' | head -1)"
 
-if [ -z "$TP_ID" ]; then
-    echo "Touchpad not found"
-    exit 1
-fi
+case "$state" in
+    disabled|disabled_on_external_mouse)
+        new="enabled"
+        ;;
+    *)
+        new="disabled"
+        ;;
+esac
 
-# Get current enabled state
-ENABLED=$(xinput list-props $TP_ID | grep "Device Enabled" | awk '{print $4}')
-
-if [ "$ENABLED" = "1" ]; then
-    xinput disable $TP_ID
-    echo "Touchpad disabled"
-else
-    xinput enable $TP_ID
-    echo "Touchpad enabled"
-fi
+swaymsg input type:touchpad events "$new" > /dev/null 2>&1
+notify-send "Touchpad" "Touchpad $new"

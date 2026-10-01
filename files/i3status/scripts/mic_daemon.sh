@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Mic status daemon for i3status
 # Updates /tmp/mic_status.txt with current mic mute status

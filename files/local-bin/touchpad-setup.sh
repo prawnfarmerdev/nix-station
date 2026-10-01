@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Touchpad setup script for libinput driver
 # Configures libinput properties and starts libinput-gestures
 # Called from i3 config at startup
@@ -13,7 +13,7 @@ sleep 2
 # Try for up to 15 seconds to find touchpad
 TP_ID=""
 for i in $(seq 1 15); do
-    TP_ID=$(xinput list | grep -i "PIXA3854:00 093A:0274 Touchpad" | grep -o 'id=[0-9]*' | cut -d= -f2)
+    TP_ID=$(xinput list | grep -i "ASUE120A:00 04F3:319B Touchpad" | grep -o 'id=[0-9]*' | cut -d= -f2)
     if [ -n "$TP_ID" ]; then
         echo "Found touchpad with ID: $TP_ID"
         break
